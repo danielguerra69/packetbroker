@@ -11,6 +11,7 @@ RUN apt-get -yq update \
 && perl Makefile.PL \
 && make \
 && make install \
+&& apt-get remove -y make gcc \
 && apt-get clean \
 && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN echo "packetbroker             1969/tcp                        # pcap amqp feed" >> /etc/services

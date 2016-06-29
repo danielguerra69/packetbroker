@@ -1,8 +1,9 @@
 #!/usr/bin/perl -w
 
-# for pcap to RabbitMQ
+# RabbitMQ to pcap
 # written by Daniel Guerra
-# initializes RabbitMQ
+# Reads packets from RabbitMQ and prints them to STDOUT
+
 
 BEGIN {
         unshift(@INC,'/usr/local/lib/x86_64-linux-gnu/perl/5.20.2');
@@ -19,6 +20,7 @@ my $mq;
 # shut up it's doing great
 no warnings;
 no warnings 'all';
+
 # check the input first
 my $args=@ARGV;
 if ($args < 4)
