@@ -1,0 +1,57 @@
+#!/usr/bin/perl -w
+
+# for pcap to RabbitMQ
+# written by Daniel Guerra
+# initializes RabbitMQ
+
+BEGIN {
+        unshift(@INC,'/usr/local/lib/x86_64-linux-gnu/perl/5.20.2');
+}
+
+# libs
+use strict;
+use warnings;
+use Net::AMQP::RabbitMQ;
+use utf8;
+# global var
+my $mq;
+
+# shut up it's doing great
+no warnings;
+no warnings 'all';
+# check the input first
+my $args=@ARGV;
+if ($args < 4)
+{
+		print STDERR ("Usage: $0 <amqp ip/dnsname> <user> <pass> <queue>\n");
+		exit(0);
+}
+my $ip=$ARGV[0];
+my $user=$ARGV[1];
+my $pass=$ARGV[2];
+my $queuename=$ARGV[3];
+
+#connect to rabbitmq
+$mq = Net::AMQP::RabbitMQ->new();
+$mq->connect($ip, { user => $user, password => $pass });
+$mq->channel_open(1);
+
+# set output
+select STDOUT;
+
+#print pcap file header
+print  pack( 'V',  0xa1b2c3d4 );
+print  pack( 'v',  0x0002 );
+print  pack( 'v',  0x0004 );
+print  pack( 'VV', 0 );
+print  pack( 'V',  0xffff );
+print  pack( 'V',  0x1 );
+
+my $gotten;
+while ($gotten = $mq->get(1, $queuename)) {
+  print $gotten->{body};
+}
+
+# finish
+$mq->channel_close(1);
+$mq->disconnect();

@@ -1,0 +1,10 @@
+service packetbroker
+{
+        socket_type     = stream
+        wait            = no
+        user            = root
+        group           = root
+        server          = /bin/pcap2amqp
+        server_args	    = <IP> <USER> <PASS> <EXCHANGE> <KEY>
+        instances       = 300
+}

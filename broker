@@ -1,0 +1,8 @@
+#!/bin/bash
+sed -i "s/<IP>/$1/g" /etc/xinetd.d/packetbroker
+sed -i "s/<USER>/$2/g" /etc/xinetd.d/packetbroker
+sed -i "s/<PASS>/$3/g" /etc/xinetd.d/packetbroker
+sed -i "s/<EXCHANGE>/$4/g" /etc/xinetd.d/packetbroker
+sed -i "s/<KEY>/$5/g" /etc/xinetd.d/packetbroker
+/bin/initamqp $1 $2 $3 $4 $5
+/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

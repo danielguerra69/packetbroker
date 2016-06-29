@@ -1,0 +1,67 @@
+#!/usr/bin/perl -w
+
+# pcap to RabbitMQ
+# written by Daniel Guerra
+# reads data from STDIN and publishes packets to RabbitMQ
+# created for the use with xinetd
+
+BEGIN {
+        unshift(@INC,'/usr/local/lib/x86_64-linux-gnu/perl/5.20.2');
+}
+
+# libs
+use strict;
+use Net::Pcap;
+use Net::AMQP::RabbitMQ;
+
+# global var
+my $mq;
+
+# check the input first
+my $args=@ARGV;
+if ($args < 5)
+{
+		print STDERR ("Usage: $0 <amqp ip/dnsname> <user> <pass> <exchange> <routingkey>\n");
+		exit(0);
+}
+my $ip=$ARGV[0];
+my $user=$ARGV[1];
+my $pass=$ARGV[2];
+my $exchange=$ARGV[3];
+my $key=$ARGV[4];
+my $queuename=$exchange."-".$key;
+# open the pcapfile
+my $err;
+my $PCAP=Net::Pcap::open_offline("-",\$err);
+   if ($err) {
+      print "$err \n";
+      exit;
+   }
+
+#connect to rabbitmq
+$mq = Net::AMQP::RabbitMQ->new();
+$mq->connect($ip, { user => $user, password => $pass });
+$mq->channel_open(1);
+$mq->exchange_declare(1,$exchange);
+$mq->queue_declare(1, $queuename);
+$mq->queue_bind(1, $queuename, $exchange, $key);
+
+#loop over the data
+Net::Pcap::loop($PCAP,-1,\&publish_pcap_pkt,$key);
+
+# finish
+Net::Pcap::close($PCAP) if ($PCAP);
+$mq->channel_close(1);
+$mq->disconnect();
+
+sub publish_pcap_pkt {
+  # prepare the hdr and packet and publish
+  my $routingkey = $_[0];
+  my $hdr = $_[1];
+  my $pkt = $_[2];
+  my $time   = pack( 'VV', $hdr->{tv_sec}, $hdr->{tv_usec} );
+  my $caplen = pack( 'V', ($hdr->{caplen}) );
+  my $len = pack( 'V', ($hdr->{len}) );
+  my $message=$time.$caplen.$len.$pkt;
+  $mq->publish(1,$routingkey,$message,{exchange => $exchange},{content_type => "application/octet-stream"});
+}
